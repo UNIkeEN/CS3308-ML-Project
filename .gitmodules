@@ -1,0 +1,6 @@
+[submodule "deps/yosys"]
+	path = deps/yosys
+	url = https://github.com/YosysHQ/yosys
+[submodule "deps/abc_py"]
+	path = deps/abc_py
+	url = https://github.com/krzhu/abc_py
