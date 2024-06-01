@@ -1,0 +1,15 @@
+device: cuda
+
+dataset:
+  raw_dir: ../../dataset/task1/
+  path: ../../dataset/task1_small.pkl
+  test_ratio: 0.2
+  batch_size: 32
+
+model:
+  hidden_dim: 256
+
+train:
+  lr: 0.001
+  epochs: 100
+  checkpoint_path: ./checkpoint.pth
