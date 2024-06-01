@@ -4,8 +4,8 @@ import abc_py
 import numpy as np
 import torch
 
-LIB_FILE = './lib/7nm/7nm.lib'
-INIT_AIG_DIR = './dataset/InitialAIG/train/'
+LIB_FILE = '../../lib/7nm/7nm.lib'
+INIT_AIG_DIR = '../../dataset/InitialAIG/train/'
 
 def obtain_aig(state: str):
     """
@@ -19,8 +19,8 @@ def obtain_aig(state: str):
     circuit_name, actions = state.split('_')
     circuit_path = INIT_AIG_DIR + circuit_name + '.aig'
     
-    log_file = circuit_name + '.log'
-    next_state = state + '.aig'
+    log_path = circuit_name + '.log'
+    aig_path = state + '.aig'
     synthesisOpToPosDic = {
         0: "refactor",
         1: "refactor -z",
@@ -33,33 +33,33 @@ def obtain_aig(state: str):
     action_cmd = ''
     for action in actions:
         action_cmd += (synthesisOpToPosDic[int(action)] + '; ')
-    abc_cmd = "./yosys -abc -c \"read " + circuit_path + "; " + action_cmd + "read_lib " + LIB_FILE + "; write " + next_state + "; print_stats\" > " + log_file
+    abc_cmd = "yosys-abc -c \"read " + circuit_path + "; " + action_cmd + "read_lib " + LIB_FILE + "; write " + aig_path + "; print_stats\" > " + log_path
 
     os.system(abc_cmd)
-    return log_file, next_state
+    return log_path, aig_path
 
-def eval_aig(aig_file: str) -> float:
+def eval_aig(aig_path: str) -> float:
     """
     Evaluate the AIG with Yosys.\\
     Provided by the project proposal.
     """
 
-    log_file = aig_file.split(".")[0] + ".log"
-    abc_cmd = "./yosys -abc -c \"read " + aig_file + "; read_lib " + LIB_FILE + "; map; topo; stime\" > " + log_file
+    log_path = aig_path.split(".")[0] + ".log"
+    abc_cmd = "yosys-abc -c \"read " + aig_path + "; read_lib " + LIB_FILE + "; map; topo; stime\" > " + log_path
     os.system(abc_cmd)
-    with open(log_file) as f:
+    with open(log_path) as f:
         area_information = re.findall('[a-zA-Z0-9.]+', f.readlines()[-1])
     eval = float(area_information[-9]) * float(area_information[-4])
 
     return eval
 
-def convert_aig_to_tensor(aig_file: str) -> dict:
+def convert_aig_to_tensor(aig_path: str) -> dict:
     """
     Using abc_py to represent AIG through the node connectivity and the features for each code.\\
     Provided by the project proposal.
 
     Params:
-    aig_file(`str`): path to AIG file
+    aig_path(`str`): path to AIG file
 
     Return:
     data(dict): pack of feature
@@ -74,7 +74,7 @@ def convert_aig_to_tensor(aig_file: str) -> dict:
 
     _abc = abc_py.AbcInterface()
     _abc.start()
-    _abc.read(aig_file)
+    _abc.read(aig_path)
     data = {}
 
     num_nodes = _abc.numNodes()
