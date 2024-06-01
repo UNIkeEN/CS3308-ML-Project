@@ -17,7 +17,9 @@ def generate_data(raw_dir: str, save_path: str):
     """
 
     processed_inputs = set()
-    all_data = []
+
+    with open(save_path, 'wb') as f:
+        pickle.dump([], f)
 
     for filename in tqdm(os.listdir(raw_dir)):
         if filename.endswith('.pkl'):
@@ -40,18 +42,17 @@ def generate_data(raw_dir: str, save_path: str):
                         data = convert_aig_to_tensor(aig_path)
                         data['input'] = input
                         data['target'] = target
-                        all_data.append(data)
-                        processed_inputs.add(input)
 
+                        with open(save_path, 'ab') as f:
+                            pickle.dump([data], f)
+
+                        processed_inputs.add(input)
                         os.remove(log_path)
                         os.remove(aig_path)
                         # print(data)
 
                     except Exception as e:
                         print(f"Error processing {input}: {e}")
-
-    with open(save_path, 'wb') as f:
-        pickle.dump(all_data, f)
 
 
 def load_data(pkl_path, test_ratio=0.2, batch_size=32):
@@ -101,4 +102,4 @@ def load_data(pkl_path, test_ratio=0.2, batch_size=32):
 
 
 if __name__ == '__main__':
-    generate_data('../../dataset/task1/', '../../dataset/task1_small.pkl')
+    generate_data('../../dataset/task1/', '../../dataset/task1_base.pkl')
