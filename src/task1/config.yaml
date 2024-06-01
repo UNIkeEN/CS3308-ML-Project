@@ -13,3 +13,6 @@ train:
   lr: 0.001
   epochs: 100
   checkpoint_path: ./checkpoint.pth
+
+test:
+  state_path: ../../dataset/task1/c2670_100.pkl
