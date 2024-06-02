@@ -18,9 +18,6 @@ def generate_data(raw_dir: str, save_path: str):
 
     processed_inputs = set()
 
-    with open(save_path, 'wb') as f:
-        pickle.dump([], f)
-
     for filename in tqdm(os.listdir(raw_dir)):
         if filename.endswith('.pkl'):
             filepath = os.path.join(raw_dir, filename)
@@ -44,7 +41,7 @@ def generate_data(raw_dir: str, save_path: str):
                         data['target'] = target
 
                         with open(save_path, 'ab') as f:
-                            pickle.dump([data], f)
+                            pickle.dump(data, f)
 
                         processed_inputs.add(input)
                         os.remove(log_path)
@@ -69,24 +66,29 @@ def load_data(pkl_path, test_ratio=0.2, batch_size=32):
     test_loader (DataLoader): DataLoader for the test set.
     """
 
-    with open(pkl_path, 'rb') as f:
-        data_list = pickle.load(f)
-
-    # convert data_list to PyTorch Geometric Data objects
     data_objects = []
-    for item in data_list:
-        edge_index = item['edge_index']
-        node_type = item['node_type']
-        num_inverted_predecessors = item['num_inverted_predecessors']
-        target = item['target']
+    try:
+        with open(pkl_path, 'rb') as f:
+            while True:
+                try:
+                    # convert data to PyTorch Geometric Data objects
+                    item = pickle.load(f)
+                    edge_index = item['edge_index']
+                    node_type = item['node_type']
+                    num_inverted_predecessors = item['num_inverted_predecessors']
+                    target = item['target']
 
-        x = torch.stack([node_type, num_inverted_predecessors], dim=1).float()
-        y = torch.tensor([target], dtype=torch.float)
-        
-        data = Data(x=x, edge_index=edge_index, y=y)
-        data.num_nodes = item['num_nodes']
-        data.num_edges = item['num_edges']
-        data_objects.append(data)
+                    x = torch.stack([node_type, num_inverted_predecessors], dim=1).float()
+                    y = torch.tensor([target], dtype=torch.float)
+                    
+                    data = Data(x=x, edge_index=edge_index, y=y)
+                    data.num_nodes = item['num_nodes']
+                    data.num_edges = item['num_edges']
+                    data_objects.append(data)
+                except EOFError:
+                    break
+    except Exception as e:
+        print(f"Error reading data from {pkl_path}: {e}")
 
     num_samples = len(data_objects)
     num_test = int(test_ratio * num_samples)
