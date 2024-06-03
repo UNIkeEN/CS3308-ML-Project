@@ -17,8 +17,16 @@ if __name__ == '__main__':
     device = cfg.device
 
     # generate and load data
-    print('Generating Data...')
-    # generate_data(cfg.dataset.raw_dir, cfg.dataset.path)
+    if cfg.dataset.skip_generate == False:
+        print('Generating Data...')
+        generate_data(
+            cfg.dataset.raw_dir, 
+            cfg.dataset.path, 
+            cfg.dataset.only_last_state, 
+            cfg.dataset.selection_ratio
+        )
+    else:
+        print("Skipped Data Generation")
     print('Loading Data...')
     train_loader, test_loader = load_data(
         cfg.dataset.path, 

@@ -1,5 +1,6 @@
 import pickle
 import os
+import random
 from tqdm import tqdm
 import torch
 from torch.utils.data import random_split
@@ -7,18 +8,29 @@ from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 from utils import obtain_aig, convert_aig_to_tensor
 
-def generate_data(raw_dir: str, save_path: str):
+def generate_data(
+        raw_dir: str, 
+        save_path: str, 
+        only_last_state: bool = False,
+        ratio: float = 1
+    ):
     """
     Generate dataset for task 1.
 
     Params:
     raw_dir(`str`): directory of raw data
     save_path(`str`): location to store the processed data, ending with the suffix `.pkl`
+    only_last_state(`bool`): whether to only use the last state
+    ratio(`float`): from 0 to 1, ratio for randomly selecting data to generate the dataset
     """
 
     processed_inputs = set()
 
-    for filename in tqdm(os.listdir(raw_dir)):
+    all_files = [f for f in os.listdir(raw_dir) if f.endswith('.pkl')]
+    assert 0 < ratio <= 1
+    selected_files = random.sample(all_files, int(len(all_files) * ratio))
+
+    for filename in tqdm(selected_files):
         if filename.endswith('.pkl'):
             filepath = os.path.join(raw_dir, filename)
             
@@ -27,7 +39,9 @@ def generate_data(raw_dir: str, save_path: str):
                 input_states = file_data['input']
                 target_values = file_data['target']
 
-                for input, target in zip(input_states, target_values):
+                _iter = zip(input_states[-1:], target_values[-1:]) if only_last_state else zip(input_states, target_values)
+
+                for input, target in _iter:
                     if input in processed_inputs:
                         continue
                     
