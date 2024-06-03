@@ -16,9 +16,11 @@ model:
   hidden_dim: 256
 
 train:
-  lr: 0.0003
-  epochs: 100
-  checkpoint_path: ./checkpoint.pth
+  lr: 1e-4
+  epochs: 1000
+  load_from_checkpoint: True
+  load_checkpoint_path: ./checkpoint.pth
+  save_checkpoint_path: ./checkpoint.pth
 
 test:
   state_path: ../../dataset/task1/c2670_100.pkl
