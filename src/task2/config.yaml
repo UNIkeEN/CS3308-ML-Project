@@ -1,0 +1,18 @@
+device: cuda:0
+
+dataset:
+  raw_dir: ../../project_data2/
+  path: /storage/sata/data/project/task2_base.pkl
+  test_ratio: 0.2
+  batch_size: 32
+
+model:
+  hidden_dim: 256
+
+train:
+  lr: 0.001
+  epochs: 100
+  checkpoint_path: ./checkpoint.pth
+
+test:
+  state_path: ../../project_data2/c6288_100.pkl
