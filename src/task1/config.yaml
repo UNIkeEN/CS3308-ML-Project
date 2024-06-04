@@ -2,25 +2,26 @@ device: cuda
 
 dataset:
   # skip data generation when execute mainpy
-  skip_generate: False
+  skip_generate: True
   # whether to only use the last state
   only_last_state: False
   # from 0 to 1, ratio for randomly selecting data to generate the dataset
-  selection_ratio: 0.02
+  selection_ratio: 0.025
   raw_dir: ../../dataset/task1/
   path: ../../dataset/task1_06031402.pkl
   test_ratio: 0.3
-  batch_size: 48
+  batch_size: 8
 
 model:
   hidden_dim: 256
 
 train:
-  lr: 1e-4
-  epochs: 1000
+  lr: 3e-5
+  epochs: 500
   load_from_checkpoint: True
   load_checkpoint_path: ./checkpoint.pth
   save_checkpoint_path: ./checkpoint.pth
 
 test:
+  checkpoint_path: ./checkpoint.pth
   state_path: ../../dataset/task1/c2670_100.pkl

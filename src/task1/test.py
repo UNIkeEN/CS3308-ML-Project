@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     # load model and checkpoint
     model = GNN(cfg.model.hidden_dim).to(device)
-    model.load_state_dict(torch.load(cfg.train.checkpoint_path))
+    model.load_state_dict(torch.load(cfg.test.checkpoint_path))
     model.eval()
 
     # load test data and evaluate it
