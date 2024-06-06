@@ -4,8 +4,9 @@ import abc_py
 import numpy as np
 import torch
 
-LIB_FILE = '../../lib/7nm/7nm.lib'
-INIT_AIG_DIR = '../../dataset/InitialAIG/train/'
+LIB_FILE = './lib/7nm/7nm.lib'
+INIT_AIG_DIR = './InitialAIG/train/'
+
 
 def obtain_aig(state: str):
     """
@@ -15,10 +16,9 @@ def obtain_aig(state: str):
     Params:
     state(`str`): e.g. "alu2_0130622"
     """
-    
+
     circuit_name, actions = state.split('_')
     circuit_path = INIT_AIG_DIR + circuit_name + '.aig'
-    
     log_path = circuit_name + '.log'
     aig_path = state + '.aig'
     synthesisOpToPosDic = {
@@ -38,20 +38,53 @@ def obtain_aig(state: str):
     os.system(abc_cmd)
     return log_path, aig_path
 
+
+def aig_baseline(aig_path: str) -> float:
+    circuit_name = aig_path.split('_')[0]
+    circuit_path = INIT_AIG_DIR + circuit_name + '.aig'
+    log_path = circuit_name + '.log'
+
+    RESYN2_CMD = "balance; rewrite; refactor; balance; rewrite; rewrite -z; balance; refactor -z; rewrite -z; balance;"
+    abcRunCmd = "yosys-abc -c \"read " + circuit_path + "; " + RESYN2_CMD + " read_lib " + LIB_FILE + "; write " + aig_path + "; map; topo; stime\" >" + log_path
+    os.system(abcRunCmd)
+    with open(log_path) as f:
+        areaInformation = re.findall('[a-zA-Z0-9.]+', f.readlines()[-1])
+        baseline = float(areaInformation[-9]) * float(areaInformation[-4])
+    return baseline
+
+
 def eval_aig(aig_path: str) -> float:
     """
     Evaluate the AIG with Yosys.\\
     Provided by the project proposal.
     """
 
-    log_path = aig_path.split(".")[0] + ".log"
+    circuit_name = aig_path.split('_')[0]
+    circuit_path = INIT_AIG_DIR + circuit_name + '.aig'
+    log_path = circuit_name + '.log'
     abc_cmd = "yosys-abc -c \"read " + aig_path + "; read_lib " + LIB_FILE + "; map; topo; stime\" > " + log_path
     os.system(abc_cmd)
     with open(log_path) as f:
         area_information = re.findall('[a-zA-Z0-9.]+', f.readlines()[-1])
     eval = float(area_information[-9]) * float(area_information[-4])
 
-    return eval
+    baseline = aig_baseline(aig_path)
+    return 1 - eval / baseline
+
+
+def eval_decision(state: str) -> float:
+    log_path, aig_path = obtain_aig(state)
+    abcRunCmd = "yosys-abc -c \"read " + aig_path + "; read_lib " + LIB_FILE + "; map; topo; stime\" > " + log_path
+    os.system(abcRunCmd)
+    with open(log_path) as f:
+        areaInformation = re.findall('[a-zA-Z0-9.]+', f.readlines()[-1])
+        adpVal = float(areaInformation[-9]) * float(areaInformation[-4])
+
+    baseline = aig_baseline(aig_path)
+    os.remove(log_path)
+    os.remove(aig_path)
+    return (baseline - adpVal) / baseline
+
 
 def convert_aig_to_tensor(aig_path: str) -> dict:
     """
@@ -89,7 +122,7 @@ def convert_aig_to_tensor(aig_path: str) -> dict:
         data['num_inverted_predecessors'][nodeIdx] = 0
         if node_type == 0 or node_type == 2:
             data['node_type'][nodeIdx] = 0
-        elif node_type== 1:
+        elif node_type == 1:
             data['node_type'][nodeIdx] = 1
         else:
             data['node_type'][nodeIdx] = 2
@@ -114,6 +147,7 @@ def convert_aig_to_tensor(aig_path: str) -> dict:
 
     return data
 
+
 def eval_aig_greedy(aig_path: str) -> float:
     synthesisOpToPosDic = {
         0: "refactor",
@@ -130,7 +164,8 @@ def eval_aig_greedy(aig_path: str) -> float:
         childs = []
         for child in range(7):
             childFile = AIG + str(child) + ".aig"
-            abcRunCmd = "yosys-abc -c \"read " + aig_path + "; " + synthesisOpToPosDic[child] + "; read_lib " + LIB_FILE + "; write " + childFile + "; print_stats\" > " + log_path
+            abcRunCmd = "yosys-abc -c \"read " + aig_path + "; " + synthesisOpToPosDic[
+                child] + "; read_lib " + LIB_FILE + "; write " + childFile + "; print_stats\" > " + log_path
             os.system(abcRunCmd)
             childs.append(childFile)
         childScores = Evaluation(childs)
