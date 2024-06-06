@@ -33,7 +33,7 @@ def obtain_aig(state: str):
     action_cmd = ''
     for action in actions:
         action_cmd += (synthesisOpToPosDic[int(action)] + '; ')
-    abc_cmd = "/mnt/c/Users/thy030702/yosys/bin/yosys-abc -c \"read " + circuit_path + "; " + action_cmd + "read_lib " + LIB_FILE + "; write " + aig_path + "; print_stats\" > " + log_path
+    abc_cmd = "yosys-abc -c \"read " + circuit_path + "; " + action_cmd + "read_lib " + LIB_FILE + "; write " + aig_path + "; print_stats\" > " + log_path
 
     os.system(abc_cmd)
     return log_path, aig_path
@@ -45,7 +45,7 @@ def eval_aig(aig_path: str) -> float:
     """
 
     log_path = aig_path.split(".")[0] + ".log"
-    abc_cmd = "/mnt/c/Users/thy030702/yosys/bin/yosys-abc -c \"read " + aig_path + "; read_lib " + LIB_FILE + "; map; topo; stime\" > " + log_path
+    abc_cmd = "yosys-abc -c \"read " + aig_path + "; read_lib " + LIB_FILE + "; map; topo; stime\" > " + log_path
     os.system(abc_cmd)
     with open(log_path) as f:
         area_information = re.findall('[a-zA-Z0-9.]+', f.readlines()[-1])
@@ -125,19 +125,31 @@ def eval_aig_greedy(aig_path: str) -> float:
         6: "balance"
     }
     log_path = aig_path.split(".")[0] + ".log"
+    AIG = aig_path.split(".")[0] + "_"
     for step in range(10):
         childs = []
         for child in range(7):
-            childFile = aig_path.split(".")[0] + "_" + str(child) + ".aig"
+            childFile = AIG + str(child) + ".aig"
             abcRunCmd = "yosys-abc -c \"read " + aig_path + "; " + synthesisOpToPosDic[child] + "; read_lib " + LIB_FILE + "; write " + childFile + "; print_stats\" > " + log_path
             os.system(abcRunCmd)
             childs.append(childFile)
         childScores = Evaluation(childs)
         action = argmax(childScores)
-        AIG = childs[action]
+        AIG = AIG + str(action)
+    AIG = AIG + ".aig"
     abcRunCmd = "yosys-abc -c \"read " + AIG + "; read_lib " + LIB_FILE + "; map; topo; stime\" > " + log_path
     os.system(abcRunCmd)
     with open(log_path) as f:
         areaInformation = re.findall('[a-zA-Z0-9.]+', f.readlines()[-1])
         adpVal = float(areaInformation[-9]) * float(areaInformation[-4])
+
+    circuit_path = INIT_AIG_DIR + aig_path.split(".")[0] + '.aig'
+    logFile = aig_path.split(".")[0] + ".log"
+    RESYN2_CMD = "balance; rewrite; refactor; balance; rewrite; rewrite -z; balance; refactor -z; rewrite -z; balance;"
+    abcRunCmd = "yosys-abc -c \"read " + circuit_path + "; " + RESYN2_CMD + " read_lib " + LIB_FILE + "; write " + aig_path + "; map; topo; stime\" >" + logFile
+    os.system(abcRunCmd)
+    with open(logFile) as f:
+        areaInformation = re.findall('[a-zA-Z0-9.]+', f.readlines()[-1])
+        baseline = float(areaInformation[-9]) * float(areaInformation[-4])
+
     return (baseline - adpVal) / baseline
